@@ -55,6 +55,26 @@ pub fn route_from_deep_link(raw: &str) -> Option<String> {
     Some(cleaned.to_string())
 }
 
+/// Reports whether a URL belongs to the embedded desktop shell or local Lerd UI
+/// backend and should stay inside the desktop window rather than opening in the
+/// system browser.
+pub fn is_internal_dashboard_url(url: &Url) -> bool {
+    match url.scheme() {
+        "tauri" | "about" | "blob" | "data" => return true,
+        "http" | "https" => {}
+        _ => return false,
+    }
+    if matches!(url.host_str(), Some("tauri.localhost")) {
+        return true;
+    }
+    if let Ok(base) = Url::parse(&backend_base_url()) {
+        return url.scheme() == base.scheme()
+            && url.host_str() == base.host_str()
+            && url.port_or_known_default() == base.port_or_known_default();
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -73,5 +93,16 @@ mod tests {
         assert_eq!(u.as_str(), "http://127.0.0.1:7073/#/sites/demo");
         assert_eq!(browser_url_for_route(None), "http://lerd.localhost/");
         assert_eq!(browser_url_for_route(Some("/services/redis")), "http://lerd.localhost/#/services/redis");
+    }
+
+    #[test]
+    fn internal_vs_external_urls() {
+        assert!(is_internal_dashboard_url(&Url::parse("http://127.0.0.1:7073/#/sites").unwrap()));
+        assert!(is_internal_dashboard_url(&Url::parse("tauri://localhost/index.html").unwrap()));
+        assert!(is_internal_dashboard_url(&Url::parse("http://tauri.localhost/index.html").unwrap()));
+        assert!(!is_internal_dashboard_url(&Url::parse("http://myapp.test/").unwrap()));
+        assert!(!is_internal_dashboard_url(&Url::parse("https://myapp.test/dashboard").unwrap()));
+        assert!(!is_internal_dashboard_url(&Url::parse("http://192.168.1.126:9100/").unwrap()));
+        assert!(!is_internal_dashboard_url(&Url::parse("https://lerd.sh/docs").unwrap()));
     }
 }

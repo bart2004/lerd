@@ -4,9 +4,10 @@ mod menu;
 mod notify;
 mod tray;
 
-use tauri::webview::Color;
+use tauri::webview::{Color, NewWindowResponse};
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent, Wry};
 use tauri_plugin_deep_link::DeepLinkExt;
+use tauri_plugin_opener::OpenerExt;
 
 pub fn show_main_window(app: &AppHandle<Wry>, route: Option<&str>) {
     if let Some(win) = app.get_webview_window("main") {
@@ -74,6 +75,29 @@ pub fn run() {
                 handle_deep_links(&dl_handle, urls);
             });
 
+            let nav_handle = handle.clone();
+            let new_win_handle = handle.clone();
+            let init_script = r#"
+                window.__LERD_DESKTOP__ = true;
+                (function () {
+                    const origOpen = window.open;
+                    window.open = function (url) {
+                        if (url && /^https?:\/\//i.test(String(url))) {
+                            window.location.href = String(url);
+                            return null;
+                        }
+                        return origOpen ? origOpen.apply(window, arguments) : null;
+                    };
+                    document.addEventListener('click', function (e) {
+                        const a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+                        if (!a) return;
+                        if (a.target === '_blank' && /^https?:\/\//i.test(a.href)) {
+                            e.preventDefault();
+                            window.location.href = a.href;
+                        }
+                    }, true);
+                })();
+            "#;
             let win = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 .title("Lerd")
                 .inner_size(1280.0, 820.0)
@@ -82,7 +106,20 @@ pub fn run() {
                 .resizable(true)
                 .decorations(true)
                 .background_color(Color(13, 13, 13, 255))
-                .initialization_script("window.__LERD_DESKTOP__ = true;")
+                .initialization_script(init_script)
+                .on_navigation(move |url| {
+                    if config::is_internal_dashboard_url(url) {
+                        return true;
+                    }
+                    let _ = nav_handle.opener().open_url(url.as_str(), None::<&str>);
+                    false
+                })
+                .on_new_window(move |url, _features| {
+                    if matches!(url.scheme(), "http" | "https") {
+                        let _ = new_win_handle.opener().open_url(url.as_str(), None::<&str>);
+                    }
+                    NewWindowResponse::Deny
+                })
                 .build()?;
 
             let nav_win = win.clone();
