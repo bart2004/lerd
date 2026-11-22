@@ -142,6 +142,7 @@ func SetPublishedPort(name string, port int) (PortChange, error) {
 	// refresh their .env to follow the change (no-op when none use it). Fired
 	// once here with the final port, bypassing our own suppression window.
 	firePublishedPortShiftForced(name, res.Actual)
+	_ = SyncLoopbackPortMap()
 	syncDashboardVhost()
 	return res, nil
 }

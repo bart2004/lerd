@@ -222,6 +222,8 @@ func Start(currentVersion string) error {
 	// because the listener is essentially free and lets the dashboard
 	// pick up dumps the moment `lerd dump on` runs without a UI restart.
 	startDumpsServer()
+	startHostExecServer()
+	syncLoopbackOnStart()
 
 	// systemd transitions a worker to "failed" without telling lerd-ui (e.g.
 	// after start-limit-hit on a crash loop). The health watcher closes
@@ -423,13 +425,12 @@ func Start(currentVersion string) error {
 	mux.HandleFunc("/api/lerd/stop", withCORS(handleLerdStop))
 	mux.HandleFunc("/api/lerd/quit", withCORS(handleLerdQuit))
 	mux.HandleFunc("/api/lerd/update-terminal", withCORS(handleLerdUpdateTerminal))
-	// Only the Windows desktop app uses these: it draws lerd's tray and raises its
-	// notifications, which lerd inside WSL cannot do itself.
-	if platform.Current.WindowsSide {
-		mux.HandleFunc("/api/desktop/ws", handleDesktopWS)
-		mux.HandleFunc("/api/tray", withCORS(handleTray))
-		mux.HandleFunc("/api/tray/action", withCORS(publishAfter(handleTrayAction, eventbus.KindStatus, eventbus.KindServices, eventbus.KindSites)))
-	}
+	// Desktop app endpoints (tray menu, tray actions, native notifications WS)
+	// are registered on all platforms so the cross-platform desktop app works
+	// identically on Linux, macOS, and Windows.
+	mux.HandleFunc("/api/desktop/ws", handleDesktopWS)
+	mux.HandleFunc("/api/tray", withCORS(handleTray))
+	mux.HandleFunc("/api/tray/action", withCORS(publishAfter(handleTrayAction, eventbus.KindStatus, eventbus.KindServices, eventbus.KindSites)))
 	mux.HandleFunc("/api/remote-control", withCORS(handleRemoteControl))
 	mux.HandleFunc("/api/access-mode", withCORS(handleAccessMode))
 	mux.HandleFunc("/api/lan/status", withCORS(handleLANStatus))

@@ -19,3 +19,5 @@ docs/public/icons/icon.svg
 
 # Tooling run from the repo root leaves this behind; the UI has its own copy.
 node_modules/
+desktop/src-tauri/target/
+desktop/src-tauri/gen/schemas/

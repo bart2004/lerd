@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lerd</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0d0d0d;
+        --card: #161616;
+        --border: #262626;
+        --text: #f5f5f5;
+        --muted: #a3a3a3;
+        --accent: #ef4444;
+        --accent-hover: #dc2626;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+        user-select: none;
+      }
+      .card {
+        width: min(440px, 90vw);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 32px;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+      }
+      .logo {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 18px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #ef4444, #b91c1c);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 28px;
+        letter-spacing: -0.04em;
+        color: #fff;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 20px;
+        font-weight: 600;
+      }
+      p {
+        margin: 0 0 24px;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      button {
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 120ms ease, opacity 120ms ease;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+      .primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      .primary:hover:not(:disabled) {
+        background: var(--accent-hover);
+      }
+      .secondary {
+        background: #222;
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+      .secondary:hover:not(:disabled) {
+        background: #2b2b2b;
+      }
+      .status {
+        margin-top: 18px;
+        font-size: 12px;
+        color: var(--muted);
+        min-height: 18px;
+      }
+      .error {
+        color: #f87171;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="logo">L</div>
+      <h1>Lerd</h1>
+      <p id="subtitle">Connecting to the local Lerd daemon…</p>
+      <div class="actions">
+        <button id="startBtn" class="primary">Start Lerd</button>
+        <button id="browserBtn" class="secondary">Open in Browser</button>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+
+    <script>
+      window.__LERD_DESKTOP__ = true;
+      const invoke = window.__TAURI__?.core?.invoke;
+      const startBtn = document.getElementById('startBtn');
+      const browserBtn = document.getElementById('browserBtn');
+      const subtitle = document.getElementById('subtitle');
+      const statusEl = document.getElementById('status');
+
+      let starting = false;
+
+      async function checkAndConnect() {
+        if (!invoke) return;
+        try {
+          const alive = await invoke('check_backend');
+          if (alive) {
+            const url = await invoke('dashboard_url');
+            statusEl.textContent = 'Connected — opening dashboard…';
+            window.location.replace(url);
+            return;
+          }
+          if (!starting) {
+            subtitle.textContent = 'Lerd is not running yet. Start the environment to open the dashboard.';
+          }
+        } catch (err) {
+          statusEl.textContent = String(err);
+        }
+      }
+
+      startBtn.addEventListener('click', async () => {
+        if (!invoke || starting) return;
+        starting = true;
+        startBtn.disabled = true;
+        subtitle.textContent = 'Starting Lerd containers and services…';
+        statusEl.className = 'status';
+        statusEl.textContent = 'Running lerd start…';
+        try {
+          await invoke('start_lerd');
+          statusEl.textContent = 'Waiting for dashboard…';
+          await checkAndConnect();
+        } catch (err) {
+          statusEl.className = 'status error';
+          statusEl.textContent = String(err);
+        } finally {
+          starting = false;
+          startBtn.disabled = false;
+        }
+      });
+
+      browserBtn.addEventListener('click', async () => {
+        if (!invoke) return;
+        try {
+          await invoke('open_in_browser', { route: null });
+        } catch (err) {
+          statusEl.className = 'status error';
+          statusEl.textContent = String(err);
+        }
+      });
+
+      checkAndConnect();
+      setInterval(checkAndConnect, 2000);
+    </script>
+  </body>
+</html>

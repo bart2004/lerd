@@ -39,14 +39,14 @@ const hostProxyLoopback = "127.0.0.1"
 // in a container, which decides how it reaches lerd services: loopback and the
 // published host ports instead of container DNS names.
 func usesLoopbackServices(site *config.Site) bool {
-	return site.IsHostProxy() || site.IsNative()
+	return site.IsHostProxy() || site.IsNative() || config.LoopbackHostsEnabled()
 }
 
 // usesLoopbackServicesIn is usesLoopbackServices against a runtime mode given to
 // it rather than read from the config, so the callers that already know the mode
 // (or have to work without a config on disk) share the same rule.
 func usesLoopbackServicesIn(site *config.Site, mode string) bool {
-	return site.IsHostProxy() || site.ServedNatively(mode)
+	return site.IsHostProxy() || site.ServedNatively(mode) || config.LoopbackHostsEnabled()
 }
 
 // rewriteEnvForHostProxy adapts lerd's computed service connection values for a

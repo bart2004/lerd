@@ -132,6 +132,7 @@ func firePublishedPortShift(service string, newPort int) {
 	hook := OnPublishedPortShift
 	suppressed := shiftSuppressN > 0
 	shiftHookMu.Unlock()
+	_ = SyncLoopbackPortMap()
 	if hook != nil && !suppressed {
 		hook(service, newPort)
 	}
@@ -143,6 +144,7 @@ func firePublishedPortShiftForced(service string, newPort int) {
 	shiftHookMu.Lock()
 	hook := OnPublishedPortShift
 	shiftHookMu.Unlock()
+	_ = SyncLoopbackPortMap()
 	if hook != nil {
 		hook(service, newPort)
 	}

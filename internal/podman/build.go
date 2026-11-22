@@ -1207,7 +1207,8 @@ func renderFPMQuadletContent(version string) (string, error) {
 	content = strings.ReplaceAll(content, "{{.SpxDataDir}}", config.SpxDataDir())
 	content = strings.ReplaceAll(content, "{{.HostNameLine}}", hostNameLine())
 	content = strings.ReplaceAll(content, "{{.ComposerMountLine}}", composerMountLine())
-	content = strings.ReplaceAll(content, "{{.ContainerPath}}", ContainerPath)
+	content = strings.ReplaceAll(content, "{{.ContainerPath}}", EffectiveContainerPath())
+	content = strings.ReplaceAll(content, "{{.FPMExec}}", fpmExecLine())
 	content = applyShellMounts(content, short)
 	content = InjectExtraVolumes(content, ExtraVolumePaths())
 	return content, nil
@@ -1342,6 +1343,26 @@ func applyShellMounts(content, versionShort string) string {
 // what the php:*-fpm-alpine base ships, spelled out because both users of this
 // replace the image's PATH rather than extending it.
 const ContainerPath = "/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+// EffectiveContainerPath prepends the host-bins shim directory to ContainerPath
+// when present so allowlisted host binaries are on PATH inside PHP containers.
+func EffectiveContainerPath() string {
+	dir := config.HostBinsDir()
+	if _, err := os.Stat(dir); err == nil {
+		return dir + ":" + ContainerPath
+	}
+	return ContainerPath
+}
+
+// fpmExecLine starts lerd-loopback alongside php-fpm when installed so
+// 127.0.0.1:<port> inside PHP containers forwards to service containers.
+func fpmExecLine() string {
+	bin := config.LoopbackBinPath()
+	if _, err := os.Stat(bin); err != nil {
+		return "php-fpm -F -R"
+	}
+	return fmt.Sprintf("/bin/sh -c '%s -map %s & exec php-fpm -F -R'", bin, config.LoopbackPortsFile())
+}
 
 // BunVolumeDir is the host directory backing the container's /root/.bun mount,
 // where an opt-in in-container musl bun lives (lerd php:bun install). Shared

@@ -452,6 +452,72 @@ func DevtoolsBridgeTarget() string {
 	return DumpsBridgeTarget()
 }
 
+// LoopbackPortsFile is the JSON port map watched by lerd-loopback inside PHP containers.
+func LoopbackPortsFile() string {
+	return filepath.Join(RunDir(), "loopback-ports.json")
+}
+
+// LoopbackBinPath is the static lerd-loopback binary executed inside PHP containers.
+func LoopbackBinPath() string {
+	return filepath.Join(DataDir(), "bin", "lerd-loopback")
+}
+
+// HostExecTCPPort is the host loopback TCP port used by host-exec when running
+// inside a Podman Machine VM (macOS), mirroring DumpsTCPPort.
+const HostExecTCPPort = "9914"
+
+// HostExecSocketPath is the Unix socket lerd-ui listens on for host-exec on Linux.
+func HostExecSocketPath() string {
+	return filepath.Join(RunDir(), "lerd-host-exec.sock")
+}
+
+// HostExecListenNetwork returns the listener network for the host-exec bridge.
+func HostExecListenNetwork() string {
+	if platform.Current.UsesMachineVM {
+		return "tcp"
+	}
+	return "unix"
+}
+
+// HostExecListenAddr returns the listener address for the host-exec bridge.
+func HostExecListenAddr() string {
+	if platform.Current.UsesMachineVM {
+		return "127.0.0.1:" + HostExecTCPPort
+	}
+	return HostExecSocketPath()
+}
+
+// HostExecTokenFile stores the per-install bearer token for TCP host-exec.
+func HostExecTokenFile() string {
+	return filepath.Join(RunDir(), "host-exec.token")
+}
+
+// HostExecStagingDir holds temporary files staged between container /tmp and host.
+func HostExecStagingDir() string {
+	return filepath.Join(RunDir(), "host-exec-tmp")
+}
+
+// HostBinsDir holds symlinks to lerd-host-exec for allowlisted host binaries.
+func HostBinsDir() string {
+	return filepath.Join(DataDir(), "host-bins")
+}
+
+// HostExecClientBinPath is the static lerd-host-exec client binary invoked inside containers.
+func HostExecClientBinPath() string {
+	return filepath.Join(DataDir(), "bin", "lerd-host-exec")
+}
+
+// LoopbackHostsEnabled reports whether containerized PHP sites should use
+// 127.0.0.1 and published host ports in .env. Defaults to true when the
+// lerd-loopback helper binary is installed, unless explicitly disabled.
+func LoopbackHostsEnabled() bool {
+	if cfg, err := LoadGlobal(); err == nil && cfg != nil && cfg.PHP.LoopbackHosts != nil {
+		return *cfg.PHP.LoopbackHosts
+	}
+	_, err := os.Stat(LoopbackBinPath())
+	return err == nil
+}
+
 // CustomServicesDir returns the directory for custom service YAML files.
 func CustomServicesDir() string {
 	return filepath.Join(ConfigDir(), "services")

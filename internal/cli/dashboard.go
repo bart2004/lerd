@@ -14,12 +14,13 @@ import (
 // NewDashboardCmd returns the dashboard command.
 func NewDashboardCmd() *cobra.Command {
 	var withSplash bool
+	var inBrowser bool
 	cmd := &cobra.Command{
 		Use:   "dashboard",
 		Short: "Open the Lerd dashboard, starting Lerd first if it is not running",
 		Args:  cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return runDashboard(withSplash)
+			return runDashboard(withSplash, inBrowser)
 		},
 	}
 	// The desktop entry passes this: clicked from an application launcher there
@@ -27,10 +28,12 @@ func NewDashboardCmd() *cobra.Command {
 	// part of a minute.
 	cmd.Flags().BoolVar(&withSplash, "splash", false,
 		"Show a progress window while Lerd starts (used by the desktop entry)")
+	cmd.Flags().BoolVar(&inBrowser, "browser", false,
+		"Open the dashboard in the web browser instead of the desktop app")
 	return cmd
 }
 
-func runDashboard(withSplash bool) error {
+func runDashboard(withSplash, inBrowser bool) error {
 	// Opening the dashboard on a stopped lerd is a request to work on
 	// something, so bring the stack up rather than land on a page whose
 	// only content is a button to press.
@@ -39,20 +42,22 @@ func runDashboard(withSplash bool) error {
 			return err
 		}
 	}
-	// Prefer the desktop app when it's the registered lerd:// handler;
-	// it focuses the running window rather than opening a new tab.
-	if desktopnotify.AppInstalled() {
-		if err := desktopnotify.OpenApp(""); err == nil {
-			fmt.Println("Opening the Lerd desktop app")
-			return nil
+	if !inBrowser {
+		// Prefer the desktop app when it's the registered lerd:// handler;
+		// it focuses the running window rather than opening a new tab.
+		if desktopnotify.AppInstalled() {
+			if err := desktopnotify.OpenApp(""); err == nil {
+				fmt.Println("Opening the Lerd desktop app")
+				return nil
+			}
 		}
-	}
-	// In WSL the dashboard installed as an app (PWA) opens from its Start Menu
-	// shortcut; a Linux browser's app window does not reach Windows.
-	if platform.Current.WindowsSide {
-		if lnk, ok := wsl.PWAShortcut(); ok && wsl.Open(lnk) == nil {
-			fmt.Println("Opening the Lerd app")
-			return nil
+		// In WSL the dashboard installed as an app (PWA) opens from its Start Menu
+		// shortcut; a Linux browser's app window does not reach Windows.
+		if platform.Current.WindowsSide {
+			if lnk, ok := wsl.PWAShortcut(); ok && wsl.Open(lnk) == nil {
+				fmt.Println("Opening the Lerd app")
+				return nil
+			}
 		}
 	}
 	url := dashboard.URL()

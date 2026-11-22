@@ -29,6 +29,7 @@ export function onFallbackOrigin(): boolean {
 // a stopped nginx would read as a running one and hand the session to a page
 // that cannot load.
 export async function handOverToVhost(): Promise<void> {
+  if (typeof window !== 'undefined' && (window as { __LERD_DESKTOP__?: boolean }).__LERD_DESKTOP__) return;
   if (!onFallbackOrigin()) return;
   try {
     const res = await fetch(VHOST_URL + '/?lerd-probe=1', { mode: 'no-cors', cache: 'no-store' });

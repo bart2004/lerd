@@ -29,7 +29,7 @@ LDFLAGS    = -s -w \
              -X $(PKG).Commit=$(COMMIT) \
              -X $(PKG).Date=$(DATE)
 
-.PHONY: build build-windows build-tray build-ui install-ui-deps test-ui install install-installer licenses test dupes clean release release-snapshot
+.PHONY: build build-windows build-tray build-loopback build-host-exec build-desktop install-desktop build-ui install-ui-deps test-ui install install-installer licenses test dupes clean release release-snapshot
 
 UI_INSTALL_STAMP = $(UI_DIR)/node_modules/.package-lock.json
 
@@ -55,9 +55,26 @@ build-windows:
 build-tray:
 	CGO_ENABLED=1 go build -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/lerd-tray ./cmd/lerd-tray
 
-install: build build-tray
+build-loopback:
+	GOOS=linux CGO_ENABLED=0 go build -ldflags="-s -w" -o $(BUILD_DIR)/lerd-loopback ./cmd/lerd-loopback
+
+build-host-exec:
+	GOOS=linux CGO_ENABLED=0 go build -ldflags="-s -w" -o $(BUILD_DIR)/lerd-host-exec ./cmd/lerd-host-exec
+
+build-desktop:
+	cd desktop/src-tauri && cargo build --release
+
+install-desktop: build-desktop
+	install -Dm755 desktop/src-tauri/target/release/lerd-desktop $(INSTALL_DIR)/lerd-desktop
+	@if [ "$$(uname)" = "Linux" ]; then bash desktop/scripts/install-linux-entry.sh $(INSTALL_DIR)/lerd-desktop; fi
+	@echo "Installed $(INSTALL_DIR)/lerd-desktop"
+
+install: build build-tray build-loopback build-host-exec
 	install -Dm755 $(BUILD_DIR)/$(BINARY) $(INSTALL_DIR)/$(BINARY)
 	install -Dm755 $(BUILD_DIR)/lerd-tray $(INSTALL_DIR)/lerd-tray
+	install -Dm755 $(BUILD_DIR)/lerd-loopback $(HOME)/.local/share/lerd/bin/lerd-loopback
+	install -Dm755 $(BUILD_DIR)/lerd-host-exec $(HOME)/.local/share/lerd/bin/lerd-host-exec
+	@mkdir -p $(HOME)/.local/share/lerd/host-bins
 	@# On WSL, wsl:setup copies lerd.exe out from beside lerd, as install.sh places it.
 	@if grep -qi microsoft /proc/sys/kernel/osrelease 2>/dev/null; then install -Dm755 $(BUILD_DIR)/lerd.exe $(INSTALL_DIR)/lerd.exe && echo "Installed $(INSTALL_DIR)/lerd.exe"; fi
 	@echo "Installed $(INSTALL_DIR)/$(BINARY) and $(INSTALL_DIR)/lerd-tray"

@@ -84,4 +84,16 @@ describe('vhost handover', () => {
     expect(window.location.href).toBe('http://192.168.1.20:7073/');
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
+
+  it('stays on loopback inside the native desktop app', async () => {
+    at('127.0.0.1', '7073');
+    (window as { __LERD_DESKTOP__?: boolean }).__LERD_DESKTOP__ = true;
+    try {
+      await handOverToVhost();
+      expect(window.location.href).toBe('http://127.0.0.1:7073/');
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    } finally {
+      delete (window as { __LERD_DESKTOP__?: boolean }).__LERD_DESKTOP__;
+    }
+  });
 });

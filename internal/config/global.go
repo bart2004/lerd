@@ -108,6 +108,12 @@ type GlobalConfig struct {
 		// every FPM image's runtime stage, for CLI tools and runtime libraries
 		// users want in the container; re-applied on rebuild.
 		Packages []string `yaml:"packages,omitempty" mapstructure:"packages"`
+		// HostBins is the allowlist of host binaries (lerd php:host-bin) exposed
+		// into PHP containers through the host-exec bridge.
+		HostBins []string `yaml:"host_bins,omitempty" mapstructure:"host_bins"`
+		// LoopbackHosts rewrites .env service hosts to 127.0.0.1 with published
+		// host ports when lerd-loopback is active inside PHP containers.
+		LoopbackHosts *bool `yaml:"loopback_hosts,omitempty" mapstructure:"loopback_hosts"`
 		// ODBCDrivers registers vendor ODBC drivers (lerd php:odbc) in the
 		// odbcinst.ini every PHP container mounts. The images ship unixODBC and
 		// the odbc extensions; the licensed driver files stay on the host.
