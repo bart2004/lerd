@@ -716,6 +716,7 @@ detect_existing_setup() {
           proc = "unknown process"
           if (match(line, /users:\(\("[^"]+"/)) {
             proc = substr(line, RSTART + 9, RLENGTH - 9)
+            sub(/".*/, "", proc)
           }
           key = "port " port " (" proc ")"
           if (!(key in seen)) {

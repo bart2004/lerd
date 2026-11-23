@@ -9,8 +9,20 @@ import (
 	"testing"
 )
 
+// shortSocketPath creates a Unix socket path under /tmp so macOS stays well
+// below its 104-byte sun_path limit (t.TempDir under /var/folders exceeds it).
+func shortSocketPath(t *testing.T) string {
+	t.Helper()
+	dir, err := os.MkdirTemp("/tmp", "lerd-he-*")
+	if err != nil {
+		t.Fatalf("MkdirTemp: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	return filepath.Join(dir, "s.sock")
+}
+
 func TestServerAndClient_UnixEndToEnd(t *testing.T) {
-	sock := filepath.Join(t.TempDir(), "host-exec.sock")
+	sock := shortSocketPath(t)
 	srv, err := Listen(context.Background(), ServerConfig{
 		ListenNetwork: "unix",
 		ListenAddr:    sock,
@@ -55,7 +67,7 @@ func TestServerAndClient_UnixEndToEnd(t *testing.T) {
 }
 
 func TestServer_RejectsDisallowedAndTraversal(t *testing.T) {
-	sock := filepath.Join(t.TempDir(), "host-exec.sock")
+	sock := shortSocketPath(t)
 	srv, err := Listen(context.Background(), ServerConfig{
 		ListenNetwork: "unix",
 		ListenAddr:    sock,
@@ -136,7 +148,7 @@ func TestServer_TCPTokenAuth(t *testing.T) {
 }
 
 func TestClient_TmpStaging(t *testing.T) {
-	sock := filepath.Join(t.TempDir(), "host-exec.sock")
+	sock := shortSocketPath(t)
 	srv, err := Listen(context.Background(), ServerConfig{
 		ListenNetwork: "unix",
 		ListenAddr:    sock,
