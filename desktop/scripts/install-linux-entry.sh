@@ -26,6 +26,9 @@ StartupWMClass=lerd-desktop
 StartupNotify=true
 EOF
 
+# Remove the standalone CLI launcher entry so Lerd only appears once in the app menu.
+rm -f "$APPS_DIR/lerd.desktop"
+
 if command -v update-desktop-database >/dev/null 2>&1; then
   update-desktop-database "$APPS_DIR" >/dev/null 2>&1 || true
 fi

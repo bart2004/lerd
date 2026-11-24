@@ -1,15 +1,15 @@
 name: CI
 
 on:
-  push:
-    branches: ["main", "release/**"]
-  pull_request:
-    branches: ["main", "release/**"]
-  # The merge queue tests each PR on top of the latest main before merging it.
-  merge_group:
-  # Daily on main so govulncheck sees advisories published between pushes.
-  schedule:
-    - cron: '0 5 * * *'
+  # Disabled automatic triggers on this fork; run manually if needed.
+  # push:
+  #   branches: ["main", "release/**"]
+  # pull_request:
+  #   branches: ["main", "release/**"]
+  # merge_group:
+  # schedule:
+  #   - cron: '0 5 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: read

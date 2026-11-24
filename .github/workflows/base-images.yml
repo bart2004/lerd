@@ -1,12 +1,13 @@
 name: Build Base Images
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'internal/podman/quadlets/lerd-php-fpm.Containerfile'
-      - 'internal/podman/devtools/**'
-      - '.github/workflows/base-images.yml'
+  # Disabled automatic push trigger on this fork; run manually if needed.
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - 'internal/podman/quadlets/lerd-php-fpm.Containerfile'
+  #     - 'internal/podman/devtools/**'
+  #     - '.github/workflows/base-images.yml'
   workflow_dispatch:
     inputs:
       force_rebuild:

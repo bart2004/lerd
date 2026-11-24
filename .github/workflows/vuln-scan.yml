@@ -4,8 +4,9 @@ name: Vulnerability Scan
 # published PHP base images and the pinned host tools. A base image with an
 # Alpine fix out is rebuilt, since its build runs apk upgrade (#2333).
 on:
-  schedule:
-    - cron: '0 5 * * *'
+  # Disabled daily schedule on this fork; run manually if needed.
+  # schedule:
+  #   - cron: '0 5 * * *'
   workflow_dispatch:
 
 env:
